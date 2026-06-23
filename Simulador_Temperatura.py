@@ -3,21 +3,16 @@ import pandas as pd
 import time
 import matplotlib.pyplot as plt
 import numpy as np
-
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 
-# ==========================================
-# CONFIGURAÇÃO DA PÁGINA (STREAMLIT)
-# ==========================================
-st.set_page_config(page_title="Simulador Fuzzy Isolado", layout="wide")
-st.title("Painel de Monitorização – Incubadora Neonatal")
-st.subheader("Arquitetura Software-in-the-Loop (SIL) com Lógica Fuzzy Real")
-st.caption("Modelo acadêmico completo com dinâmica térmica corrigida e estável.")
+#StreamLit
+st.set_page_config(page_title="Monitoramento - Incubadora NeoNatal", layout="wide")
+st.title("Painel de Monitoramento")
+st.subheader("Monitoramento de Temperatura")
+st.caption("Modelo para medição de temperatura de uma incubadora para recém-nascidos")
 
-# ==========================================
-# VARIÁVEIS DE SESSÃO (SESSION STATE)
-# ==========================================
+
 if "temperatura" not in st.session_state:
     st.session_state.temperatura = 25.0
 
@@ -33,10 +28,7 @@ if "historico" not in st.session_state:
 if "contador" not in st.session_state:
     st.session_state.contador = 0
 
-# ==========================================
-# CONFIGURAÇÃO DO MOTOR FUZZY (CALIBRADO)
-# ==========================================
-# Universo do erro expandido para cobrir desde a temperatura ambiente (25°C) até os alvos
+#Configuracao do Fuzzy
 erro = ctrl.Antecedent(np.arange(-20, 20.1, 0.1), 'erro')
 atuacao = ctrl.Consequent(np.arange(0, 101, 1), 'atuacao')
 
@@ -67,9 +59,7 @@ def calcular_atuacao(erro_valor):
     simulador.compute()
     return simulador.output['atuacao']
 
-# ==========================================
-# DEFINIÇÃO DE SETPOINT (BARRA LATERAL)
-# ==========================================
+#SetPoints
 st.sidebar.header("🎯 Painel Médico (SetPoints)")
 
 sp_selecionado = st.sidebar.radio(
@@ -80,27 +70,25 @@ sp_selecionado = st.sidebar.radio(
 
 novo_sp = 36.2 if "SP1" in sp_selecionado else (36.8 if "SP2" in sp_selecionado else 37.4)
 
-# Se mudar o SetPoint, reinicia a simulação suavemente do zero
+
 if novo_sp != st.session_state.setpoint_atual:
     st.session_state.setpoint_atual = novo_sp
     st.session_state.temperatura = 25.0
     st.session_state.contador = 0
     st.session_state.historico = pd.DataFrame(columns=["Tempo", "Temperatura", "Atuação", "SetPoint"])
 
-# ==========================================
-# EQUAÇÃO DA PLANTA TÉRMICA (SINCRONIZADA)
-# ==========================================
+#Definição da Temperatura ambiente
 t_ambiente = 25.0
 
+
+#Calibração dos valores
 def planta_termica(temp_atual, potencia_pwm):
-    # Valores matemáticos calibrados para que o ponto de equilíbrio atinja perfeitamente os SetPoints
+    
     ganho = potencia_pwm * 0.15
     perda = (temp_atual - t_ambiente) * 0.95
     return temp_atual + (ganho - perda) * 0.1
 
-# ==========================================
-# EXECUÇÃO DO CICLO DE CONTROLE
-# ==========================================
+#Ciclo de controle
 erro_atual = st.session_state.setpoint_atual - st.session_state.temperatura
 
 st.session_state.atuacao = calcular_atuacao(erro_atual)
@@ -123,9 +111,7 @@ st.session_state.historico = pd.concat([st.session_state.historico, novo_ponto],
 if len(st.session_state.historico) > 80:
     st.session_state.historico = st.session_state.historico.iloc[1:].reset_index(drop=True)
 
-# ==========================================
-# BLOCO VISUAL DE MÉTRICAS (DASHBOARD)
-# ==========================================
+#DashBoard visual
 col1, col2, col3 = st.columns(3)
 col1.metric("Temperatura Real na Estufa", f"{st.session_state.temperatura:.2f} °C")
 col2.metric("SetPoint Clínico Alvo", f"{st.session_state.setpoint_atual:.2f} °C")
@@ -140,9 +126,7 @@ else:
 
 st.markdown("---")
 
-# ==========================================
-# SINALIZADORES VISUAIS (LEDs VIRTUAIS)
-# ==========================================
+#LEDs
 st.subheader("💡 Estado dos Sinalizadores Físicos (LEDs Virtuais)")
 c_verde, c_vermelho = st.columns(2)
 
@@ -155,9 +139,7 @@ else:
 
 st.markdown("---")
 
-# ==========================================
-# SEÇÃO GRÁFICA (TABS)
-# ==========================================
+#Graficos
 tab1, tab2 = st.tabs(["📊 Curvas Temporais", "🧠 Mapeamento Nebuloso (Fuzzy)"])
 
 with tab1:
